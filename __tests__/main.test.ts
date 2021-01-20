@@ -9,11 +9,11 @@ test('test runs', () => {
   process.env['INPUT_CTPUSERNAME'] = 'admin'
   process.env['INPUT_CTPPASSWORD'] = 'admin'
   process.env['INPUT_SYSTEM'] = 'ParaBank'
-  process.env['INPUT_ENVIRONMENT'] = 'NewFromAction'
+  process.env['INPUT_ENVIRONMENT'] = 'TestDestroy'
   const np = process.execPath
   const ip = path.join(__dirname, '..', 'lib', 'main.js')
   const options: cp.ExecFileSyncOptions = {
-    env: process.env
+	env: process.env
   }
   console.log(cp.execFileSync(np, [ip], options).toString())
 })

@@ -25,4 +25,4 @@ jobs:
           ctpUsername: 'admin'
           ctpPassword: 'admin'
           system: 'ParaBank'
-          environment: 'NewFromAction'
+          environment: 'TestDestroy'
