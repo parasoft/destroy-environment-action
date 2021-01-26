@@ -1,4 +1,4 @@
-name: 'Destroy Task'
+name: 'Destroy Environment'
 description: 'Destroy a Parasoft Service Virtualization environment'
 author: 'Parasoft'
 inputs:
