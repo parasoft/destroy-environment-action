@@ -37,153 +37,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
 const core = __importStar(__nccwpck_require__(186));
-const http = __nccwpck_require__(605);
-const https = __nccwpck_require__(211);
-const q = __nccwpck_require__(172);
-const url = __nccwpck_require__(835);
-var emBaseURL = url.parse(core.getInput('ctpUrl'));
-if (emBaseURL.path === '/') {
-    emBaseURL.path = '/em';
-}
-else if (emBaseURL.path === '/em/') {
-    emBaseURL.path = '/em';
-}
-var protocol = emBaseURL.protocol === 'https:' ? https : http;
-var protocolLabel = emBaseURL.protocol || 'http:';
-var username = core.getInput('ctpUsername');
-var getFromEM = function (path) {
-    var def = q.defer();
-    var options = {
-        host: emBaseURL.hostname,
-        port: emBaseURL.port,
-        path: emBaseURL.path + path,
-        headers: {
-            'Accept': 'application/json'
-        }
-    };
-    if (protocolLabel === 'https:') {
-        options['rejectUnauthorized'] = false;
-        options['agent'] = false;
-    }
-    if (username) {
-        options['auth'] = username + ':' + core.getInput('ctpPassword');
-    }
-    console.log('GET ' + protocolLabel + '//' + options.host + ':' + options.port + options.path);
-    var responseString = "";
-    protocol.get(options, (res) => {
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => {
-            responseString += chunk;
-        });
-        res.on('end', () => {
-            console.log('    response ' + res.statusCode + ':  ' + responseString);
-            var responseObject = JSON.parse(responseString);
-            def.resolve(responseObject);
-        });
-    }).on('error', (e) => {
-        def.reject(e);
-    });
-    return def.promise;
-};
-var findInEM = function (path, property, name, otherProperty, otherMatch) {
-    var def = q.defer();
-    var options = {
-        host: emBaseURL.hostname,
-        port: emBaseURL.port,
-        path: emBaseURL.path + path,
-        headers: {
-            'Accept': 'application/json'
-        }
-    };
-    if (protocolLabel === 'https:') {
-        options['rejectUnauthorized'] = false;
-        options['agent'] = false;
-    }
-    if (username) {
-        options['auth'] = username + ':' + core.getInput('ctpPassword');
-    }
-    console.log('GET ' + protocolLabel + '//' + options.host + ':' + options.port + options.path);
-    var responseString = "";
-    protocol.get(options, (res) => {
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => {
-            responseString += chunk;
-        });
-        res.on('end', () => {
-            console.log('    response ' + res.statusCode + ':  ' + responseString);
-            var responseObject = JSON.parse(responseString);
-            if (typeof responseObject[property] === 'undefined') {
-                def.reject(property + ' does not exist in response object from ' + path);
-                return;
-            }
-            for (var i = 0; i < responseObject[property].length; i++) {
-                if (otherProperty && otherMatch) {
-                    if (responseObject[property][i][otherProperty] !== otherMatch) {
-                        continue;
-                    }
-                }
-                if (responseObject[property][i].name === name) {
-                    def.resolve(responseObject[property][i]);
-                    return;
-                }
-            }
-            def.reject('Could not find name "' + name + '" in ' + property + ' from ' + path);
-            return;
-        });
-    }).on('error', (e) => {
-        def.reject(e);
-    });
-    return def.promise;
-};
-var deleteFromEM = function (path) {
-    var def = q.defer();
-    var options = {
-        host: emBaseURL.hostname,
-        port: emBaseURL.port,
-        path: emBaseURL.path + path,
-        method: 'DELETE',
-        headers: {
-            'Accept': 'application/json'
-        }
-    };
-    if (protocolLabel === 'https:') {
-        options['rejectUnauthorized'] = false;
-        options['agent'] = false;
-    }
-    if (username) {
-        options['auth'] = username + ':' + core.getInput('ctpPassword');
-    }
-    console.log('DELETE ' + protocolLabel + '//' + options.host + ':' + options.port + options.path);
-    var responseString = "";
-    protocol.get(options, (res) => {
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => {
-            responseString += chunk;
-        });
-        res.on('end', () => {
-            console.log('    response ' + res.statusCode + ':  ' + responseString);
-            var responseObject = JSON.parse(responseString);
-            def.resolve(responseObject);
-        });
-    }).on('error', (e) => {
-        def.reject(e);
-    });
-    return def.promise;
-};
+const service = __importStar(__nccwpck_require__(511));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
-        var systemName = core.getInput('system');
+        var ctpEndpoint = core.getInput('ctpUrl', { required: true });
+        var ctpUsername = core.getInput('ctpUsername', { required: true });
+        var ctpPassword = core.getInput('ctpPassword', { required: true });
+        var ctpService = new service.WebService(ctpEndpoint, 'em', { username: ctpUsername, password: ctpPassword });
+        var systemName = core.getInput('system', { required: true });
         var systemId;
-        var environmentName = core.getInput('environment');
+        var environmentName = core.getInput('environment', { required: true });
         var environmentId;
-        return findInEM('/api/v2/systems', 'systems', systemName).then((system) => {
+        return ctpService.findInEM('/api/v2/systems', 'systems', systemName).then((system) => {
             core.debug('Found system ' + system.name + ' with id ' + system.id);
             systemId = system.id;
-            return findInEM('/api/v2/environments', 'environments', environmentName, 'systemId', systemId);
+            return ctpService.findInEM('/api/v2/environments', 'environments', environmentName, 'systemId', systemId);
         }).then((environment) => {
             environmentId = environment.id;
-            return deleteFromEM('/api/v2/environments/' + environmentId + '?recursive=true');
+            return ctpService.deleteFromEM('/api/v2/environments/' + environmentId + '?recursive=true');
         }).then((res) => {
             if (res.name) {
                 core.debug('Successfully deleted ' + res.name);
@@ -197,7 +70,172 @@ function run() {
         });
     });
 }
+exports.run = run;
 run();
+
+
+/***/ }),
+
+/***/ 511:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.WebService = void 0;
+const http = __nccwpck_require__(605);
+const https = __nccwpck_require__(211);
+const q = __nccwpck_require__(172);
+const url = __nccwpck_require__(835);
+class WebService {
+    constructor(endpoint, context, authorization) {
+        this.baseURL = url.parse(endpoint);
+        if (this.baseURL.path === '/') {
+            this.baseURL.path += context;
+        }
+        else if (this.baseURL.path === `/${context}/`) {
+            this.baseURL.path = `/${context}`;
+        }
+        this.authorization = authorization;
+        this.protocol = this.baseURL.protocol === 'https:' ? https : http;
+        this.protocolLabel = this.baseURL.protocol || 'http:';
+    }
+    getFromEM(path) {
+        let def = q.defer();
+        let promise = new Promise((resolve, reject) => {
+            def.resolve = resolve;
+            def.reject = reject;
+        });
+        let options = {
+            host: this.baseURL.hostname,
+            port: this.baseURL.port,
+            path: this.baseURL.path + path,
+            auth: undefined,
+            headers: {
+                'Accept': 'application/json'
+            }
+        };
+        if (this.protocolLabel === 'https:') {
+            options['rejectUnauthorized'] = false;
+            options['agent'] = false;
+        }
+        if (this.authorization) {
+            options.auth = this.authorization.username + ':' + this.authorization.password;
+        }
+        console.log('GET ' + this.protocolLabel + '//' + options.host + ':' + options.port + options.path);
+        let responseString = "";
+        this.protocol.get(options, (res) => {
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => {
+                responseString += chunk;
+            });
+            res.on('end', () => {
+                console.log('    response ' + res.statusCode + ':  ' + responseString);
+                let responseObject = JSON.parse(responseString);
+                def.resolve(responseObject);
+            });
+        }).on('error', (e) => {
+            def.reject(e);
+        });
+        return promise;
+    }
+    ;
+    findInEM(path, property, name, otherProperty, otherMatch) {
+        let def = q.defer();
+        let promise = new Promise((resolve, reject) => {
+            def.resolve = resolve;
+            def.reject = reject;
+        });
+        let options = {
+            host: this.baseURL.hostname,
+            port: this.baseURL.port,
+            path: this.baseURL.path + path,
+            auth: undefined,
+            headers: {
+                'Accept': 'application/json'
+            }
+        };
+        if (this.protocolLabel === 'https:') {
+            options['rejectUnauthorized'] = false;
+            options['agent'] = false;
+        }
+        if (this.authorization) {
+            options.auth = this.authorization.username + ':' + this.authorization.password;
+        }
+        console.log('GET ' + this.protocolLabel + '//' + options.host + ':' + options.port + options.path);
+        let responseString = "";
+        this.protocol.get(options, (res) => {
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => {
+                responseString += chunk;
+            });
+            res.on('end', () => {
+                console.log('    response ' + res.statusCode + ':  ' + responseString);
+                let responseObject = JSON.parse(responseString);
+                if (typeof responseObject[property] === 'undefined') {
+                    def.reject(property + ' does not exist in response object from ' + path);
+                    return;
+                }
+                for (let i = 0; i < responseObject[property].length; i++) {
+                    if (otherProperty && otherMatch) {
+                        if (responseObject[property][i][otherProperty] !== otherMatch) {
+                            continue;
+                        }
+                    }
+                    if (responseObject[property][i].name === name) {
+                        def.resolve(responseObject[property][i]);
+                        return;
+                    }
+                }
+                def.reject('Could not find name "' + name + '" in ' + property + ' from ' + path);
+                return;
+            });
+        }).on('error', (e) => {
+            def.reject(e);
+        });
+        return promise;
+    }
+    deleteFromEM(path) {
+        let def = q.defer();
+        let promise = new Promise((resolve, reject) => {
+            def.resolve = resolve;
+            def.reject = reject;
+        });
+        let options = {
+            host: this.baseURL.hostname,
+            port: this.baseURL.port,
+            path: this.baseURL.path + path,
+            auth: undefined,
+            headers: {
+                'Accept': 'application/json'
+            }
+        };
+        if (this.protocolLabel === 'https:') {
+            options['rejectUnauthorized'] = false;
+            options['agent'] = false;
+        }
+        if (this.authorization) {
+            options.auth = this.authorization.username + ':' + this.authorization.password;
+        }
+        console.log('DELETE ' + this.protocolLabel + '//' + options.host + ':' + options.port + options.path);
+        let responseString = "";
+        this.protocol.get(options, (res) => {
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => {
+                responseString += chunk;
+            });
+            res.on('end', () => {
+                console.log('    response ' + res.statusCode + ':  ' + responseString);
+                let responseObject = JSON.parse(responseString);
+                def.resolve(responseObject);
+            });
+        }).on('error', (e) => {
+            def.reject(e);
+        });
+        return promise;
+    }
+}
+exports.WebService = WebService;
 
 
 /***/ }),
