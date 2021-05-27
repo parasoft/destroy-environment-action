@@ -17,11 +17,12 @@ export async function run(): Promise<void> {
       systemId = system.id;
       return ctpService.findInEM<EMEnvironment>('/api/v2/environments', 'environments', environmentName, 'systemId', systemId);
   }).then((environment: EMEnvironment) => {
+      core.info('Destorying environment: ' + environmentName);
       environmentId = environment.id;
 	  return ctpService.deleteFromEM<EMEnvironment>('/api/v2/environments/' + environmentId + '?recursive=true');
   }).then((res: EMEnvironment) => {
 		if (res.name) {
-			core.debug('Successfully deleted ' + res.name);
+			core.info('Successfully deleted environment: ' + res.name);
 		} else {
             core.error('Failed to delete environment: ' + environmentName);
             core.setFailed('Failed to delete environment: ' + environmentName);

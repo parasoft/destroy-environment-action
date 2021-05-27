@@ -49,7 +49,7 @@ export class WebService {
         if (this.authorization) {
             options.auth = this.authorization.username + ':' +  this.authorization.password;
         }
-        console.log('GET ' + this.protocolLabel + '//' + options.host + ':' + options.port + options.path);
+        core.debug('GET ' + this.protocolLabel + '//' + options.host + ':' + options.port + options.path);
         let responseString = "";
         this.protocol.get(options, (res) => {
             res.setEncoding('utf8');
@@ -57,7 +57,7 @@ export class WebService {
                 responseString += chunk;
             });
             res.on('end', () => {
-                console.log('    response ' + res.statusCode + ':  ' + responseString);
+                core.debug('    response ' + res.statusCode + ':  ' + responseString);
                 let responseObject = JSON.parse(responseString);
                 def.resolve(responseObject);
             });
@@ -89,7 +89,7 @@ export class WebService {
         if (this.authorization) {
           options.auth = this.authorization.username + ':' +  this.authorization.password;
         }
-        console.log('GET ' + this.protocolLabel + '//' + options.host + ':' + options.port + options.path);
+        core.debug('GET ' + this.protocolLabel + '//' + options.host + ':' + options.port + options.path);
         let responseString = "";
         this.protocol.get(options, (res) => {
             res.setEncoding('utf8');
@@ -97,7 +97,7 @@ export class WebService {
                 responseString += chunk;
             });
             res.on('end', () => {
-                console.log('    response ' + res.statusCode + ':  ' + responseString);
+                core.debug('    response ' + res.statusCode + ':  ' + responseString);
                 let responseObject = JSON.parse(responseString);
                 if (typeof responseObject[property] === 'undefined') {
                     def.reject(property + ' does not exist in response object from ' + path);
@@ -145,7 +145,7 @@ export class WebService {
         if (this.authorization) {
           options.auth = this.authorization.username + ':' +  this.authorization.password;
         }
-        console.log('DELETE ' + this.protocolLabel + '//' + options.host + ':' + options.port + options.path);
+        core.debug('DELETE ' + this.protocolLabel + '//' + options.host + ':' + options.port + options.path);
         let responseString = "";
         this.protocol.get(options, (res) => {
             res.setEncoding('utf8');
@@ -153,7 +153,7 @@ export class WebService {
                 responseString += chunk;
             });
             res.on('end', () => {
-                console.log('    response ' + res.statusCode + ':  ' + responseString);
+                core.debug('    response ' + res.statusCode + ':  ' + responseString);
                 let responseObject = JSON.parse(responseString);
                 def.resolve(responseObject);
             });
